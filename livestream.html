@@ -55,45 +55,46 @@ function getAccessTokenFromUrl() {
 
 // Function to create a YouTube broadcast
 async function createYouTubeBroadcast(accessToken, broadcastTitle) {
-  console.log("Entered Broadcast creation");
-  const apiUrl = 'https://www.googleapis.com/youtube/v3/liveBroadcasts';
-  console.log("Step2 completed");
-  const broadcastData = {
-    snippet: {
-      title: broadcastTitle,
-      scheduledStartTime: new Date(Date.now() + 5 * 60000).toISOString(), // Start 5 minutes from now
-      description: 'A new broadcast created via the YouTube API'
-    },
-    status: {
-      privacyStatus: 'unlisted'
-    }
-  };
-  console.log("Step3 completed");
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        part: 'snippet,status',
-        resource: broadcastData
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('Broadcast created successfully:', data);
-    return data;
-  } catch (error) {
-    console.error('Error creating broadcast:', error);
-    throw error;
-  }
+  console.log("Entered Broadcast creation");
+  const apiUrl = 'https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status';
+  console.log("Step2 completed");
+  
+  const broadcastData = {
+    snippet: {
+      title: broadcastTitle,
+      scheduledStartTime: new Date(Date.now() + 5 * 60000).toISOString(), // Start 5 minutes from now
+      description: 'A new broadcast created via the YouTube API'
+    },
+    status: {
+      privacyStatus: 'unlisted'
+    }
+  };
+  
+  console.log("Step3 completed");
+  
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(broadcastData)  // Send broadcastData directly, without the resource wrapper
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${JSON.stringify(errorData)}`);
+    }
+    
+    const data = await response.json();
+    console.log('Broadcast created successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error creating broadcast:', error);
+    throw error;
+  }
 }
 
 

@@ -58,7 +58,7 @@ async function createYouTubeBroadcast(accessToken, broadcastTitle) {
   
   const broadcastData = {
     snippet: {
-      title: Test Broadcast,
+      title: broadcastTitle,
       scheduledStartTime: new Date(Date.now() + 5 * 60000).toISOString(), // Start 5 minutes from now
       description: 'A new broadcast created via the YouTube API'
     },

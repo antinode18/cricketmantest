@@ -3,16 +3,18 @@
 <script>
   function check_oauth(){
                 // Check if we're returning from OAuth (i.e., if there's a hash in the URL)
+            if (window.location.hash) {
+            const accessToken = getAccessTokenFromUrl();
             if (accessToken) {
-                createYouTubeLiveBroadcast(accessToken, 'My New Live Broadcast')
-                  .then(() => {
-                    console.log('Broadcast Inserted');
-                  })
-                  .catch(error => {
-                    console.error('Error in process:', error);
-                  });
-              }
-            } else {
+              createYouTubeLiveBroadcast(accessToken, 'Test Broadcast')
+                .then(() => {
+                  console.log('Broadcast Created');
+                })
+                .catch(error => {
+                  console.error('Error in process:', error);
+                });
+            }
+          } else {
                 console.log("Need to do reauth")
             // If we're not returning from OAuth, we need to start the OAuth flow
             // This would typically be triggered by a user action, like clicking a "Login" button
@@ -56,7 +58,7 @@ async function createYouTubeBroadcast(accessToken, broadcastTitle) {
   
   const broadcastData = {
     snippet: {
-      title: Test Title,
+      title: Test Broadcast,
       scheduledStartTime: new Date(Date.now() + 5 * 60000).toISOString(), // Start 5 minutes from now
       description: 'A new broadcast created via the YouTube API'
     },
@@ -91,6 +93,14 @@ async function createYouTubeBroadcast(accessToken, broadcastTitle) {
     throw error;
   }
 }
+
+
+
+
+
+
+
+
 
 
   
@@ -147,4 +157,3 @@ async function createYouTubeLiveStream(accessToken, streamTitle) {
 
 <button onclick="check_oauth();">Create Live Stream</button>
 </body></html>
-  

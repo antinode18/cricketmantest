@@ -152,6 +152,50 @@ async function createYouTubeLiveStream(accessToken, streamTitle) {
   }
 } // end of createYouTubeLiveStream function
 
+// Function to bind the stream to the broadcast
+async function bindBroadcastToStream(accessToken, broadcastId, streamId) {
+  const apiUrl = `https://www.googleapis.com/youtube/v3/liveBroadcasts/bind`;
+  
+  try {
+    const response = await fetch(`${apiUrl}?id=${broadcastId}&streamId=${streamId}&part=id`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Broadcast bound to stream successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error binding broadcast to stream:', error);
+    throw error;
+  }
+} // end of bindBroadcastToStream function
+
+
+// Main function to orchestrate the process
+async function createYouTubeLiveBroadcast(accessToken, title) {
+  try {
+    const broadcast = await check_oauth();
+    /*const broadcast = await createYouTubeBroadcast(accessToken, title);*/
+    const stream = await createYouTubeLiveStream(accessToken, `${title} - Stream`);
+    await bindBroadcastToStream(accessToken, broadcast.id, stream.id);
+    
+    console.log('Broadcast created and bound to stream successfully');
+    console.log('Broadcast ID:', broadcast.id);
+    console.log('Stream ID:', stream.id);
+    console.log('Ingestion URL:', stream.cdn.ingestionInfo.ingestionAddress);
+    console.log('Stream Name:', stream.cdn.ingestionInfo.streamName);
+  } catch (error) {
+    console.error('Error in creating live broadcast:', error);
+  }
+} // end of createYouTubeLiveBroadcast()
 
 
 

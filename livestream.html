@@ -54,7 +54,7 @@ function getAccessTokenFromUrl() {
 }
 
 // Function to create a YouTube broadcast
-function createYouTubeBroadcast(accessToken, broadcastTitle) {
+async function createYouTubeBroadcast(accessToken, broadcastTitle) {
   console.log("Entered Broadcast creation");
   const apiUrl = 'https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status';
   console.log("Step2 completed");

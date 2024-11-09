@@ -110,7 +110,7 @@ async function createYouTubeBroadcast(accessToken, broadcastTitle) {
   
 async function createYouTubeLiveStream(accessToken, streamTitle) {
   console.log("Entered Live Stream");
-  const apiUrl = 'https://www.googleapis.com/youtube/v3/liveStreams';
+  const apiUrl = 'https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn,contentDetails';
   
   const streamData = {
     snippet: {
@@ -135,16 +135,12 @@ async function createYouTubeLiveStream(accessToken, streamTitle) {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        part: 'snippet,cdn,contentDetails',
-        resource: streamData
-      })
+      body: JSON.stringify(streamData)
     });
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-
     const data = await response.json();
     console.log('Live stream created successfully:', data);
     return data;
@@ -152,7 +148,7 @@ async function createYouTubeLiveStream(accessToken, streamTitle) {
     console.error('Error creating live stream:', error);
     throw error;
   }
-} // end of createYouTubeLiveStream function
+}
 
 // Function to bind the stream to the broadcast
 async function bindBroadcastToStream(accessToken, broadcastId, streamId) {

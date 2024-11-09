@@ -3,19 +3,15 @@
 <script>
   function check_oauth(){
                 // Check if we're returning from OAuth (i.e., if there's a hash in the URL)
-            if (window.location.hash) {
-            const accessToken = getAccessTokenFromUrl();
             if (accessToken) {
-                createYouTubeLiveStream(accessToken, 'My New Live Stream')
-                .then(streamData => {
-                    console.log('Stream created:', streamData);
-                    // Handle successful stream creation
-                })
-                .catch(error => {
-                    console.error('Error creating stream:', error);
-                    // Handle error
-                });
-            }
+                createYouTubeLiveBroadcast(accessToken, 'My New Live Broadcast')
+                  .then(() => {
+                    console.log('Broadcast Inserted');
+                  })
+                  .catch(error => {
+                    console.error('Error in process:', error);
+                  });
+              }
             } else {
                 console.log("Need to do reauth")
             // If we're not returning from OAuth, we need to start the OAuth flow
@@ -54,7 +50,50 @@ function getAccessTokenFromUrl() {
   }
 }
 
+// Function to create a YouTube broadcast
+async function createYouTubeBroadcast(accessToken, broadcastTitle) {
+  const apiUrl = 'https://www.googleapis.com/youtube/v3/liveBroadcasts';
+  
+  const broadcastData = {
+    snippet: {
+      title: Test Title,
+      scheduledStartTime: new Date(Date.now() + 5 * 60000).toISOString(), // Start 5 minutes from now
+      description: 'A new broadcast created via the YouTube API'
+    },
+    status: {
+      privacyStatus: 'unlisted'
+    }
+  };
 
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        part: 'snippet,status',
+        resource: broadcastData
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Broadcast created successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error creating broadcast:', error);
+    throw error;
+  }
+}
+
+
+  
 async function createYouTubeLiveStream(accessToken, streamTitle) {
   const apiUrl = 'https://www.googleapis.com/youtube/v3/liveStreams';
   

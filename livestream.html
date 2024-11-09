@@ -6,7 +6,7 @@
             if (window.location.hash) {
             const accessToken = getAccessTokenFromUrl();
             if (accessToken) {
-              createYouTubeLiveBroadcast(accessToken, 'Test Broadcast')
+              createYouTubeBroadcast(accessToken, 'Test Broadcast')
                 .then(() => {
                   console.log('Broadcast Created');
                 })

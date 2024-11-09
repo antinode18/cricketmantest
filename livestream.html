@@ -107,7 +107,7 @@ async function createYouTubeBroadcast(accessToken, broadcastTitle) {
 
 
   
- function createYouTubeLiveStream(accessToken, streamTitle) {
+async function createYouTubeLiveStream(accessToken, streamTitle) {
   const apiUrl = 'https://www.googleapis.com/youtube/v3/liveStreams';
   
   const streamData = {
@@ -153,7 +153,7 @@ async function createYouTubeBroadcast(accessToken, broadcastTitle) {
 } // end of createYouTubeLiveStream function
 
 // Function to bind the stream to the broadcast
- function bindBroadcastToStream(accessToken, broadcastId, streamId) {
+async function bindBroadcastToStream(accessToken, broadcastId, streamId) {
   const apiUrl = `https://www.googleapis.com/youtube/v3/liveBroadcasts/bind`;
   
   try {
@@ -182,10 +182,10 @@ async function createYouTubeBroadcast(accessToken, broadcastTitle) {
 // Main function to orchestrate the process
 async function createYouTubeLiveBroadcast(accessToken, title) {
   try {
-    const broadcast =  check_oauth();
+    const broadcast = await check_oauth();
     /*const broadcast = await createYouTubeBroadcast(accessToken, title);*/
-    const stream =  createYouTubeLiveStream(accessToken, `${title} - Stream`);
-     bindBroadcastToStream(accessToken, broadcast.id, stream.id);
+    const stream = await createYouTubeLiveStream(accessToken, `${title} - Stream`);
+    await bindBroadcastToStream(accessToken, broadcast.id, stream.id);
     
     console.log('Broadcast created and bound to stream successfully');
     console.log('Broadcast ID:', broadcast.id);

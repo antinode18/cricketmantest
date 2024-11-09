@@ -10,6 +10,7 @@
               createYouTubeBroadcast(accessToken, 'Test Broadcast')
                 .then(() => {
                   console.log('Broadcast Created');
+                  createYouTubeLiveStream();
                 })
                 .catch(error => {
                   console.error('Error in process:', error);
@@ -203,5 +204,5 @@ async function createYouTubeLiveBroadcast(accessToken, title) {
 
 </script>
 
-<button onclick="check_oauth();createYouTubeLiveStream();">Create Live Stream</button>
+<button onclick="check_oauth();">Create Live Stream</button>
 </body></html>

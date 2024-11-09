@@ -182,7 +182,7 @@ async function bindBroadcastToStream(accessToken, broadcastId, streamId) {
 // Main function to orchestrate the process
 async function createYouTubeLiveBroadcast(accessToken, title) {
   try {
-    const broadcast = await check_oauth();
+    const broadcast = check_oauth();
     /*const broadcast = await createYouTubeBroadcast(accessToken, title);*/
     const stream = await createYouTubeLiveStream(accessToken, `${title} - Stream`);
     await bindBroadcastToStream(accessToken, broadcast.id, stream.id);

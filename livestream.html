@@ -1,1 +1,110 @@
+<!DOCTYPE html>
+<html><head></head><body>
+<script>
+  function check_oauth(){
+                // Check if we're returning from OAuth (i.e., if there's a hash in the URL)
+            if (window.location.hash) {
+            const accessToken = getAccessTokenFromUrl();
+            if (accessToken) {
+                createYouTubeLiveStream(accessToken, 'My New Live Stream')
+                .then(streamData => {
+                    console.log('Stream created:', streamData);
+                    // Handle successful stream creation
+                })
+                .catch(error => {
+                    console.error('Error creating stream:', error);
+                    // Handle error
+                });
+            }
+            } else {
+                console.log("Need to do reauth")
+            // If we're not returning from OAuth, we need to start the OAuth flow
+            // This would typically be triggered by a user action, like clicking a "Login" button
+            /*
+            function startOAuthFlow() {
+                const clientId = 'YOUR_CLIENT_ID';
+                const redirectUri = encodeURIComponent('YOUR_REDIRECT_URI');
+                const scope = encodeURIComponent('https://www.googleapis.com/auth/youtube');
+                const authUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=token`;
+                
+                window.location.href = authUrl;
+  }*/
+  
+  // You would call startOAuthFlow() when the user wants to authenticate
+                        }
 
+
+
+
+
+}// end of check_oauth()
+
+
+function getAccessTokenFromUrl() {
+  const hash = window.location.hash.substring(1);
+  const params = new URLSearchParams(hash);
+  const accessToken = params.get('access_token');
+  
+  if (accessToken) {
+    console.log('Access Token:', accessToken);
+    return accessToken;
+  } else {
+    console.error('Access token not found in URL');
+    return null;
+  }
+}
+
+
+async function createYouTubeLiveStream(accessToken, streamTitle) {
+  const apiUrl = 'https://www.googleapis.com/youtube/v3/liveStreams';
+  
+  const streamData = {
+    snippet: {
+      title: streamTitle,
+      description: 'A new live stream created via the YouTube API'
+    },
+    cdn: {
+      frameRate: 'variable',
+      ingestionType: 'rtmp',
+      resolution: 'variable'
+    },
+    contentDetails: {
+      isReusable: true
+    }
+  };
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        part: 'snippet,cdn,contentDetails',
+        resource: streamData
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Live stream created successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error creating live stream:', error);
+    throw error;
+  }
+} // end of createYouTubeLiveStream function
+
+
+
+
+
+</script>
+
+<button onclick="check_oauth();">Create Live Stream</button>
+  

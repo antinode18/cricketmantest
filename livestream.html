@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html><head></head><body>
 <script>
+  const ffmpeg = require('ffmpeg.js');
   function check_oauth(){
             // Check if we're returning from OAuth (i.e., if there's a hash in the URL)
             if (window.location.hash) {
@@ -177,6 +178,47 @@ async function bindBroadcastToStream(accessToken, broadcastId, streamId) {
   }
 } // end of bindBroadcastToStream function
 
+// Function to start the camera and send the feed
+async function startCameraAndStream(ingestionAddress, streamName) {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    const videoElement = document.createElement('video');
+    videoElement.srcObject = stream;
+    videoElement.play();
+
+    // Create a MediaRecorder to capture the stream
+    const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+
+    // Set up WebSocket connection to your server
+    const ws = new WebSocket('YOUR_SERVER_WEBSOCKET_URL');
+    ws.onopen = () => {
+      console.log('WebSocket connection established');
+      mediaRecorder.start(1000); // Start recording, send data every second
+    };
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        // Send the recorded chunk to your server
+        ws.send(event.data);
+      }
+    };
+
+    // Your server should forward this data to YouTube using the ingestionAddress and streamName
+    console.log('Ingestion Address:', ingestionAddress);
+    console.log('Stream Name:', streamName);
+
+  } catch (error) {
+    console.error('Error starting camera:', error);
+  }
+}
+
+
+
+
+
+
+
+  
 
 // Main function to orchestrate the process
 async function createYouTubeLiveBroadcast() {
@@ -196,13 +238,154 @@ async function createYouTubeLiveBroadcast() {
     console.log('Stream ID:', stream.id);
     console.log('Ingestion URL:', stream.cdn.ingestionInfo.ingestionAddress);
     console.log('Stream Name:', stream.cdn.ingestionInfo.streamName);
+    const rtmpUrl = 'rtmp://a.rtmp.youtube.com/live2/phh0-qzk3-qma9-jqyg-52zf';
+    startYouTubeStream(rtmpUrl);
   } catch (error) {
     console.error('Error in creating live broadcast:', error);
   }
 } // end of createYouTubeLiveBroadcast()
 
+/* *********************************************************************************************************************** */
 
 
+
+class YouTubeStreamer {
+  constructor(rtmpUrl) {
+    this.rtmpUrl = rtmpUrl;
+    this.mediaRecorder = null;
+    this.videoStream = null;
+    this.chunks = [];
+  }
+
+  async setupCamera() {
+    try {
+      // Request camera access with audio
+      this.videoStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30 }
+        },
+        audio: true
+      });
+
+      // Create video preview element
+      const videoPreview = document.createElement('video');
+      videoPreview.srcObject = this.videoStream;
+      videoPreview.muted = true; // Mute preview to prevent feedback
+      videoPreview.play();
+      document.body.appendChild(videoPreview);
+
+      return true;
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      return false;
+    }
+  }
+
+  startStreaming() {
+    if (!this.videoStream) {
+      throw new Error('Camera not initialized. Call setupCamera() first.');
+    }
+
+    // Configure MediaRecorder with video encoding options
+    const options = {
+      mimeType: 'video/webm;codecs=h264',
+      videoBitsPerSecond: 2500000 // 2.5 Mbps
+    };
+
+    this.mediaRecorder = new MediaRecorder(this.videoStream, options);
+
+    // Handle data available event
+    this.mediaRecorder.ondataavailable = async (event) => {
+      if (event.data.size > 0) {
+        this.chunks.push(event.data);
+        await this.processAndStream(event.data);
+      }
+    };
+
+    // Start recording
+    this.mediaRecorder.start(1000); // Collect data every second
+  }
+
+  async processAndStream(videoData) {
+    try {
+      // Convert Blob to ArrayBuffer
+      const arrayBuffer = await videoData.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      // Configure FFmpeg for RTMP streaming
+      const ffmpegInstance = ffmpeg({
+        MEMFS: [{ name: "input.webm", data: uint8Array }],
+        arguments: [
+          '-i', 'input.webm',
+          '-c:v', 'libx264',
+          '-preset', 'veryfast',
+          '-c:a', 'aac',
+          '-f', 'flv',
+          this.rtmpUrl
+        ],
+      });
+
+      // Process the video data
+      const result = ffmpegInstance.run();
+
+      // Handle FFmpeg output
+      const stdout = ffmpegInstance.stdout;
+      const stderr = ffmpegInstance.stderr;
+
+      if (stderr) {
+        console.log('FFmpeg stderr:', stderr);
+      }
+
+    } catch (error) {
+      console.error('Error processing video:', error);
+    }
+  }
+
+  stopStreaming() {
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
+    }
+
+    if (this.videoStream) {
+      this.videoStream.getTracks().forEach(track => track.stop());
+    }
+
+    this.chunks = [];
+  }
+} // end of youtubeobjectclass
+
+// Example usage:
+async function startYouTubeStream(rtmpUrl) {
+  const streamer = new YouTubeStreamer(rtmpUrl);
+  
+  // Setup camera
+  const cameraReady = await streamer.setupCamera();
+  if (!cameraReady) {
+    console.error('Failed to initialize camera');
+    return;
+  }
+
+  // Start streaming
+  try {
+    streamer.startStreaming();
+    console.log('Streaming started');
+  } catch (error) {
+    console.error('Error starting stream:', error);
+  }
+
+  // Example of stopping the stream after 1 hour
+  setTimeout(() => {
+    streamer.stopStreaming();
+    console.log('Streaming stopped');
+  }, 3600000);
+}
+
+
+
+
+  
 
 </script>
 

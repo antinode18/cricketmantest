@@ -281,7 +281,10 @@ async function createYouTubeLiveBroadcast() {
                     });
 
                     // Set up video preview
-                    this.previewElement.srcObject = this.videoStream;
+                    setTimeout(() => {
+                                      this.previewElement.srcObject = this.videoStream;
+                                    }, 2000);
+                    
                     return true;
                 } catch (error) {
                     console.error('Error accessing camera:', error);

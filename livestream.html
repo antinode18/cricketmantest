@@ -10,7 +10,7 @@
               createYouTubeBroadcast(accessToken, 'Test Broadcast')
                 .then(() => {
                   console.log('Broadcast Created');
-                  createYouTubeLiveStream();
+                  createYouTubeLiveStream(accessToken,'LST');
                 })
                 .catch(error => {
                   console.error('Error in process:', error);
@@ -110,7 +110,6 @@ async function createYouTubeBroadcast(accessToken, broadcastTitle) {
   
 async function createYouTubeLiveStream(accessToken, streamTitle) {
   console.log("Entered Live Stream");
-  const accessToken = getAccessTokenFromUrl();
   console.log('Access Token:', accessToken);
   const apiUrl = 'https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn,contentDetails';
   

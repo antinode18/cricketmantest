@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html><head></head><body>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg.js/3.1.9001/ffmpeg.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg.js/3.1.9001/ffmpeg.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg.js/3.1.9001/ffmpeg-core.js"></script>
 
   <script>
   
@@ -247,6 +249,7 @@ async function createYouTubeLiveBroadcast() {
   }
 } // end of createYouTubeLiveBroadcast()
 
+    /********************************************** */
 /* *********************************************************************************************************************** */
 
 
@@ -257,6 +260,26 @@ class YouTubeStreamer {
     this.mediaRecorder = null;
     this.videoStream = null;
     this.chunks = [];
+    this.ffmpeg = null;
+  }
+
+  async initFFmpeg() {
+    try {
+      // Create FFmpeg instance
+      const { createFFmpeg } = FFmpeg;
+      this.ffmpeg = createFFmpeg({
+        log: true,
+        corePath: 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg.js/3.1.9001/ffmpeg-core.js'
+      });
+      
+      // Load FFmpeg
+      await this.ffmpeg.load();
+      console.log('FFmpeg loaded successfully');
+      return true;
+    } catch (error) {
+      console.error('Error loading FFmpeg:', error);
+      return false;
+    }
   }
 
   async setupCamera() {
@@ -274,7 +297,7 @@ class YouTubeStreamer {
       // Create video preview element
       const videoPreview = document.createElement('video');
       videoPreview.srcObject = this.videoStream;
-      videoPreview.muted = true; // Mute preview to prevent feedback
+      videoPreview.muted = true;
       videoPreview.play();
       document.body.appendChild(videoPreview);
 
@@ -285,20 +308,26 @@ class YouTubeStreamer {
     }
   }
 
-  startStreaming() {
+  async startStreaming() {
     if (!this.videoStream) {
       throw new Error('Camera not initialized. Call setupCamera() first.');
     }
 
-    // Configure MediaRecorder with video encoding options
+    if (!this.ffmpeg) {
+      const ffmpegLoaded = await this.initFFmpeg();
+      if (!ffmpegLoaded) {
+        throw new Error('Failed to initialize FFmpeg');
+      }
+    }
+
+    // Configure MediaRecorder
     const options = {
       mimeType: 'video/webm;codecs=h264',
-      videoBitsPerSecond: 2500000 // 2.5 Mbps
+      videoBitsPerSecond: 2500000
     };
 
     this.mediaRecorder = new MediaRecorder(this.videoStream, options);
 
-    // Handle data available event
     this.mediaRecorder.ondataavailable = async (event) => {
       if (event.data.size > 0) {
         this.chunks.push(event.data);
@@ -306,39 +335,29 @@ class YouTubeStreamer {
       }
     };
 
-    // Start recording
-    this.mediaRecorder.start(1000); // Collect data every second
+    this.mediaRecorder.start(1000);
   }
 
   async processAndStream(videoData) {
     try {
-      // Convert Blob to ArrayBuffer
       const arrayBuffer = await videoData.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
 
-      // Configure FFmpeg for RTMP streaming
-      const ffmpegInstance = ffmpeg({
-        MEMFS: [{ name: "input.webm", data: uint8Array }],
-        arguments: [
-          '-i', 'input.webm',
-          '-c:v', 'libx264',
-          '-preset', 'veryfast',
-          '-c:a', 'aac',
-          '-f', 'flv',
-          this.rtmpUrl
-        ],
-      });
+      // Write input file to FFmpeg's virtual filesystem
+      this.ffmpeg.FS('writeFile', 'input.webm', uint8Array);
 
-      // Process the video data
-      const result = ffmpegInstance.run();
+      // Run FFmpeg command
+      await this.ffmpeg.run(
+        '-i', 'input.webm',
+        '-c:v', 'libx264',
+        '-preset', 'veryfast',
+        '-c:a', 'aac',
+        '-f', 'flv',
+        this.rtmpUrl
+      );
 
-      // Handle FFmpeg output
-      const stdout = ffmpegInstance.stdout;
-      const stderr = ffmpegInstance.stderr;
-
-      if (stderr) {
-        console.log('FFmpeg stderr:', stderr);
-      }
+      // Clean up virtual filesystem
+      this.ffmpeg.FS('unlink', 'input.webm');
 
     } catch (error) {
       console.error('Error processing video:', error);
@@ -354,11 +373,15 @@ class YouTubeStreamer {
       this.videoStream.getTracks().forEach(track => track.stop());
     }
 
+    if (this.ffmpeg) {
+      this.ffmpeg.exit();
+    }
+
     this.chunks = [];
   }
-} // end of youtubeobjectclass
+}
 
-// Example usage:
+// Updated usage function
 async function startYouTubeStream(rtmpUrl) {
   const streamer = new YouTubeStreamer(rtmpUrl);
   
@@ -371,19 +394,12 @@ async function startYouTubeStream(rtmpUrl) {
 
   // Start streaming
   try {
-    streamer.startStreaming();
+    await streamer.startStreaming();
     console.log('Streaming started');
   } catch (error) {
     console.error('Error starting stream:', error);
   }
-
-  // Example of stopping the stream after 1 hour
-  setTimeout(() => {
-    streamer.stopStreaming();
-    console.log('Streaming stopped');
-  }, 3600000);
 }
-
 
 
 

@@ -110,6 +110,7 @@ async function createYouTubeBroadcast(accessToken, broadcastTitle) {
   
 async function createYouTubeLiveStream(accessToken, streamTitle) {
   console.log("Entered Live Stream");
+  console.log(accessToken);
   const apiUrl = 'https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn,contentDetails';
   
   const streamData = {

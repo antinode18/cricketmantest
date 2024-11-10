@@ -179,12 +179,17 @@ async function bindBroadcastToStream(accessToken, broadcastId, streamId) {
 
 
 // Main function to orchestrate the process
-async function createYouTubeLiveBroadcast(accessToken, title) {
+async function createYouTubeLiveBroadcast() {
   try {
-    const broadcast = await check_oauth();
-    /*const broadcast = await createYouTubeBroadcast(accessToken, title);*/
-    const stream = await createYouTubeLiveStream(accessToken, `${title} - Stream`);
+    console.log('Step0');
+    const accessToken = getAccessTokenFromUrl();
+    console.log('Step1');
+    const broadcast = await createYouTubeBroadcast(accessToken, 'AdiVirat Broadcast');
+    console.log('Step2');
+    const stream = await createYouTubeLiveStream(accessToken, `Adi Virat Stream`);
+    console.log('Step3');
     await bindBroadcastToStream(accessToken, broadcast.id, stream.id);
+    console.log('Step4');
     
     console.log('Broadcast created and bound to stream successfully');
     console.log('Broadcast ID:', broadcast.id);
@@ -201,5 +206,5 @@ async function createYouTubeLiveBroadcast(accessToken, title) {
 
 </script>
 
-<button onclick="check_oauth();">Create Live Stream</button>
+<button onclick="createYouTubeLiveBroadcast();">Create Live Stream</button>
 </body></html>

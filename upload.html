@@ -270,7 +270,8 @@ async function createYouTubeLiveBroadcast() {
   try {
     console.log('Step0');
     const accessToken = getAccessTokenFromUrl();
-    
+    console.log('Step0.5');
+    const accessToken = uploadVideoToYouTube('Temp_Title',accessToken);
     console.log('Step1');
     const broadcast = await createYouTubeBroadcast(accessToken, 'AdiVirat Broadcast');
     console.log('Step2');
@@ -284,8 +285,8 @@ async function createYouTubeLiveBroadcast() {
     console.log('Stream ID:', stream.id);
     console.log('Ingestion URL:', stream.cdn.ingestionInfo.ingestionAddress);
     console.log('Stream Name:', stream.cdn.ingestionInfo.streamName);
-    const rtmpUrl = 'rtmp://a.rtmp.youtube.com/live2/phh0-qzk3-qma9-jqyg-52zf';
-    startYouTubeStream(rtmpUrl);
+    
+    
   } catch (error) {
     console.error('Error in creating live broadcast:', error);
   }

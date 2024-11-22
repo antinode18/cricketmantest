@@ -3,45 +3,7 @@
 
   <script>
   
-  function check_oauth(){
-            // Check if we're returning from OAuth (i.e., if there's a hash in the URL)
-            if (window.location.hash) {
-            const accessToken = getAccessTokenFromUrl();
-            if (accessToken) {
-              console.log("Token found. Sending to Broadcast creation");
-              createYouTubeBroadcast(accessToken, 'Test Broadcast')
-                .then(() => {
-                  console.log('Broadcast Created');
-                  createYouTubeLiveStream(accessToken,'LST');
-                })
-                .catch(error => {
-                  console.error('Error in process:', error);
-                });
-            }
-          } else {
-                console.log("Need to do reauth")
-            // If we're not returning from OAuth, we need to start the OAuth flow
-            // This would typically be triggered by a user action, like clicking a "Login" button
-            /*
-            function startOAuthFlow() {
-                const clientId = 'YOUR_CLIENT_ID';
-                const redirectUri = encodeURIComponent('YOUR_REDIRECT_URI');
-                const scope = encodeURIComponent('https://www.googleapis.com/auth/youtube');
-                const authUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=token`;
-                
-                window.location.href = authUrl;
-  }*/
   
-  // You would call startOAuthFlow() when the user wants to authenticate
-                        }
-
-
-
-
-
-}// end of check_oauth()
-
-
 function getAccessTokenFromUrl() {
   const hash = window.location.hash.substring(1);
   const params = new URLSearchParams(hash);
@@ -56,49 +18,6 @@ function getAccessTokenFromUrl() {
   }
 }
 
-// Function to create a YouTube broadcast
-async function createYouTubeBroadcast(accessToken, broadcastTitle) {
-  console.log("Entered Broadcast creation");
-  const apiUrl = 'https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status';
-  console.log("Step2 completed");
-  
-  const broadcastData = {
-    snippet: {
-      title: broadcastTitle,
-      scheduledStartTime: new Date(Date.now() + 5 * 60000).toISOString(), // Start 5 minutes from now
-      description: 'A new broadcast created via the YouTube API'
-    },
-    status: {
-      privacyStatus: 'unlisted'
-    }
-  };
-  
-  console.log("Step3 completed");
-  
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(broadcastData)  // Send broadcastData directly, without the resource wrapper
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`HTTP error! status: ${response.status}, message: ${JSON.stringify(errorData)}`);
-    }
-    
-    const data = await response.json();
-    console.log('Broadcast created successfully:', data);
-    return data;
-  } catch (error) {
-    console.error('Error creating broadcast:', error);
-    throw error;
-  }
-}
 
 
        function uploadVideoToYouTube(title, oauthKey) {
@@ -154,108 +73,10 @@ async function createYouTubeBroadcast(accessToken, broadcastTitle) {
 
 
   
-async function createYouTubeLiveStream(accessToken, streamTitle) {
-  console.log("Entered Live Stream");
-  console.log('Access Token:', accessToken);
-  const apiUrl = 'https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn,contentDetails';
-  
-  const streamData = {
-    snippet: {
-      title: streamTitle,
-      description: 'A new live stream created via the YouTube API'
-    },
-    cdn: {
-      frameRate: 'variable',
-      ingestionType: 'rtmp',
-      resolution: 'variable'
-    },
-    contentDetails: {
-      isReusable: true
-    }
-  };
 
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(streamData)
-    });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    console.log('Live stream created successfully:', data);
-    return data;
-  } catch (error) {
-    console.error('Error creating live stream:', error);
-    throw error;
-  }
-}
 
-// Function to bind the stream to the broadcast
-async function bindBroadcastToStream(accessToken, broadcastId, streamId) {
-  const apiUrl = `https://www.googleapis.com/youtube/v3/liveBroadcasts/bind`;
-  
-  try {
-    const response = await fetch(`${apiUrl}?id=${broadcastId}&streamId=${streamId}&part=id`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/json'
-      }
-    });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('Broadcast bound to stream successfully:', data);
-    return data;
-  } catch (error) {
-    console.error('Error binding broadcast to stream:', error);
-    throw error;
-  }
-} // end of bindBroadcastToStream function
-
-// Function to start the camera and send the feed
-async function startCameraAndStream(ingestionAddress, streamName) {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    const videoElement = document.createElement('video');
-    videoElement.srcObject = stream;
-    videoElement.play();
-
-    // Create a MediaRecorder to capture the stream
-    const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
-
-    // Set up WebSocket connection to your server
-    const ws = new WebSocket('YOUR_SERVER_WEBSOCKET_URL');
-    ws.onopen = () => {
-      console.log('WebSocket connection established');
-      mediaRecorder.start(1000); // Start recording, send data every second
-    };
-
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        // Send the recorded chunk to your server
-        ws.send(event.data);
-      }
-    };
-
-    // Your server should forward this data to YouTube using the ingestionAddress and streamName
-    console.log('Ingestion Address:', ingestionAddress);
-    console.log('Stream Name:', streamName);
-
-  } catch (error) {
-    console.error('Error starting camera:', error);
-  }
-}
 
 
 
@@ -270,22 +91,11 @@ async function createYouTubeLiveBroadcast() {
   try {
     console.log('Step0');
     const accessToken = getAccessTokenFromUrl();
-    console.log('Step0.5');
-    uploadVideoToYouTube('Temp_Title',accessToken);
     console.log('Step1');
-    const broadcast = await createYouTubeBroadcast(accessToken, 'AdiVirat Broadcast');
-    console.log('Step2');
-    const stream = await createYouTubeLiveStream(accessToken, `Adi Virat Stream`);
-    console.log('Step3');
-    await bindBroadcastToStream(accessToken, broadcast.id, stream.id);
-    console.log('Step4');
+    uploadVideoToYouTube('Temp_Title',accessToken);
+
     
     console.log('Broadcast created and bound to stream successfully');
-    console.log('Broadcast ID:', broadcast.id);
-    console.log('Stream ID:', stream.id);
-    console.log('Ingestion URL:', stream.cdn.ingestionInfo.ingestionAddress);
-    console.log('Stream Name:', stream.cdn.ingestionInfo.streamName);
-    
     
   } catch (error) {
     console.error('Error in creating live broadcast:', error);
@@ -297,152 +107,9 @@ async function createYouTubeLiveBroadcast() {
 
 
 
-class YouTubeStreamer {
-  constructor(rtmpUrl) {
-    this.rtmpUrl = rtmpUrl;
-    this.mediaRecorder = null;
-    this.videoStream = null;
-    this.chunks = [];
-    this.ffmpeg = null;
-  }
 
-  async initFFmpeg() {
-    try {
-      // Create FFmpeg instance
-      const { createFFmpeg } = FFmpeg;
-      this.ffmpeg = createFFmpeg({
-        log: true,
-        corePath: 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg.js/3.1.9001/ffmpeg-core.js'
-      });
-      
-      // Load FFmpeg
-      await this.ffmpeg.load();
-      console.log('FFmpeg loaded successfully');
-      return true;
-    } catch (error) {
-      console.error('Error loading FFmpeg:', error);
-      return false;
-    }
-  }
 
-  async setupCamera() {
-    try {
-      // Request camera access with audio
-      this.videoStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          frameRate: { ideal: 30 }
-        },
-        audio: true
-      });
 
-      // Create video preview element
-      const videoPreview = document.createElement('video');
-      videoPreview.srcObject = this.videoStream;
-      videoPreview.muted = true;
-      videoPreview.play();
-      document.body.appendChild(videoPreview);
-
-      return true;
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      return false;
-    }
-  }
-
-  async startStreaming() {
-    if (!this.videoStream) {
-      throw new Error('Camera not initialized. Call setupCamera() first.');
-    }
-
-    if (!this.ffmpeg) {
-      const ffmpegLoaded = await this.initFFmpeg();
-      if (!ffmpegLoaded) {
-        throw new Error('Failed to initialize FFmpeg');
-      }
-    }
-
-    // Configure MediaRecorder
-    const options = {
-      mimeType: 'video/webm;codecs=h264',
-      videoBitsPerSecond: 2500000
-    };
-
-    this.mediaRecorder = new MediaRecorder(this.videoStream, options);
-
-    this.mediaRecorder.ondataavailable = async (event) => {
-      if (event.data.size > 0) {
-        this.chunks.push(event.data);
-        await this.processAndStream(event.data);
-      }
-    };
-
-    this.mediaRecorder.start(1000);
-  }
-
-  async processAndStream(videoData) {
-    try {
-      const arrayBuffer = await videoData.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-
-      // Write input file to FFmpeg's virtual filesystem
-      this.ffmpeg.FS('writeFile', 'input.webm', uint8Array);
-
-      // Run FFmpeg command
-      await this.ffmpeg.run(
-        '-i', 'input.webm',
-        '-c:v', 'libx264',
-        '-preset', 'veryfast',
-        '-c:a', 'aac',
-        '-f', 'flv',
-        this.rtmpUrl
-      );
-
-      // Clean up virtual filesystem
-      this.ffmpeg.FS('unlink', 'input.webm');
-
-    } catch (error) {
-      console.error('Error processing video:', error);
-    }
-  }
-
-  stopStreaming() {
-    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-      this.mediaRecorder.stop();
-    }
-
-    if (this.videoStream) {
-      this.videoStream.getTracks().forEach(track => track.stop());
-    }
-
-    if (this.ffmpeg) {
-      this.ffmpeg.exit();
-    }
-
-    this.chunks = [];
-  }
-}
-
-// Updated usage function
-async function startYouTubeStream(rtmpUrl) {
-  const streamer = new YouTubeStreamer(rtmpUrl);
-  
-  // Setup camera
-  const cameraReady = await streamer.setupCamera();
-  if (!cameraReady) {
-    console.error('Failed to initialize camera');
-    return;
-  }
-
-  // Start streaming
-  try {
-    await streamer.startStreaming();
-    console.log('Streaming started');
-  } catch (error) {
-    console.error('Error starting stream:', error);
-  }
-}
 
 
 
@@ -450,5 +117,5 @@ async function startYouTubeStream(rtmpUrl) {
 
 </script>
 
-<button onclick="createYouTubeLiveBroadcast();">Create Live Stream</button>
+<button onclick="createYouTubeLiveBroadcast();">Select and Upload</button>
 </body></html>

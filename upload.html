@@ -73,6 +73,10 @@
 
   <script>
   
+  document.getElementById('uploadButton').addEventListener('click', () => {
+        document.getElementById('videoFileInput').click();
+        });
+
   document.getElementById('videoFileInput').addEventListener('change', (event) => {
             const title = document.getElementById('titleInput').value;
             const file = event.target.files[0];

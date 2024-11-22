@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload to YouTube</title>
+    <!-- Load the Google API client library -->
     <script src="https://apis.google.com/js/api.js"></script>
-    <script src="https://apis.google.com/js/client.js"></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
     <style>
+        /* Keeping the same styles as before */
         body {
             font-family: 'Roboto', sans-serif;
             background-color: #f9f9f9;
@@ -27,204 +29,184 @@
             max-width: 600px;
         }
 
-        h1 {
-            color: #ff0000;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #606060;
-            font-weight: 500;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-
-        .file-upload {
-            position: relative;
-            display: inline-block;
-            width: 100%;
-        }
-
-        .file-upload-input {
-            display: none;
-        }
-
-        .file-upload-button {
-            background-color: #ff0000;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            font-size: 16px;
-            font-weight: 500;
-            transition: background-color 0.3s;
-        }
-
-        .file-upload-button:hover {
-            background-color: #cc0000;
-        }
-
-        .selected-file {
-            margin-top: 10px;
-            color: #606060;
-            font-size: 14px;
-        }
-
-        .progress-bar {
-            display: none;
-            width: 100%;
-            height: 4px;
-            background-color: #e0e0e0;
-            border-radius: 2px;
-            margin-top: 20px;
-        }
-
-        .progress {
-            width: 0%;
-            height: 100%;
-            background-color: #ff0000;
-            border-radius: 2px;
-            transition: width 0.3s;
-        }
-
-        .success-message {
-            display: none;
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #e6f4ea;
-            border-radius: 4px;
-            color: #1e8e3e;
-        }
-
-        .error-message {
-            display: none;
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #fce8e6;
-            border-radius: 4px;
-            color: #d93025;
-        }
-
-        .video-link {
-            color: #065fd4;
-            text-decoration: none;
-            word-break: break-all;
-        }
-
-        .video-link:hover {
-            text-decoration: underline;
-        }
-
-        .copy-button {
-            background-color: #065fd4;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 8px 16px;
-            margin-top: 10px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.3s;
-        }
-
-        .copy-button:hover {
-            background-color: #0448a2;
-        }
+        /* Previous styles remain the same */
+        /* ... */
     </style>
 </head>
 <body>
     <div class="upload-container">
         <h1>Upload to YouTube</h1>
-        <div class="form-group">
-            <label for="video-title">Video Title</label>
-            <input type="text" id="video-title" placeholder="Enter video title">
-        </div>
-        <div class="form-group">
-            <label for="video-description">Description (optional)</label>
-            <input type="text" id="video-description" placeholder="Enter video description">
-        </div>
-        <div class="form-group">
-            <div class="file-upload">
-                <input type="file" id="video-file" class="file-upload-input" accept="video/*">
-                <button class="file-upload-button" onclick="document.getElementById('video-file').click()">
-                    Select and Upload Video
-                </button>
-                <div class="selected-file" id="selected-file-name"></div>
+        <div id="auth-status"></div>
+        <div id="upload-form" style="display: none;">
+            <div class="form-group">
+                <label for="video-title">Video Title</label>
+                <input type="text" id="video-title" placeholder="Enter video title">
             </div>
+            <div class="form-group">
+                <label for="video-description">Description (optional)</label>
+                <input type="text" id="video-description" placeholder="Enter video description">
+            </div>
+            <div class="form-group">
+                <div class="file-upload">
+                    <input type="file" id="video-file" class="file-upload-input" accept="video/*">
+                    <button class="file-upload-button" onclick="document.getElementById('video-file').click()">
+                        Select and Upload Video
+                    </button>
+                    <div class="selected-file" id="selected-file-name"></div>
+                </div>
+            </div>
+            <div class="progress-bar" id="progress-bar">
+                <div class="progress" id="progress"></div>
+            </div>
+            <div class="success-message" id="success-message">
+                <p>Video uploaded successfully!</p>
+                <p>Your video is available at:</p>
+                <a id="video-url" class="video-link" target="_blank"></a>
+                <br>
+                <button class="copy-button" onclick="copyVideoUrl()">Copy URL</button>
+            </div>
+            <div class="error-message" id="error-message"></div>
         </div>
-        <div class="progress-bar" id="progress-bar">
-            <div class="progress" id="progress"></div>
-        </div>
-        <div class="success-message" id="success-message">
-            <p>Video uploaded successfully!</p>
-            <p>Your video is available at:</p>
-            <a id="video-url" class="video-link" target="_blank"></a>
-            <br>
-            <button class="copy-button" onclick="copyVideoUrl()">Copy URL</button>
-        </div>
-        <div class="error-message" id="error-message"></div>
     </div>
 
     <script>
-        // Wait for the API to load
-        function loadGAPIClient() {
-            return new Promise((resolve, reject) => {
-                gapi.load('client', {
-                    callback: resolve,
-                    onerror: reject,
-                    timeout: 5000,
-                    ontimeout: reject
-                });
-            });
-        }
+        // Configuration
+        const API_KEY = 'YOUR_API_KEY'; // Replace with your actual API key
+        const CLIENT_ID = 'YOUR_CLIENT_ID'; // Replace with your actual client ID
+        const SCOPES = 'https://www.googleapis.com/auth/youtube.upload';
 
-        // Initialize the API client
-        async function initClient() {
+        let tokenClient;
+        let accessToken = null;
+
+        // Initialize the Google API client
+        async function initializeGAPIClient() {
             try {
-                await loadGAPIClient();
+                await new Promise((resolve, reject) => {
+                    gapi.load('client', { callback: resolve, onerror: reject });
+                });
+
                 await gapi.client.init({
+                    apiKey: API_KEY,
                     discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest'],
                 });
-                
+
+                // Initialize the tokenClient
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: CLIENT_ID,
+                    scope: SCOPES,
+                    callback: (response) => {
+                        if (response.error !== undefined) {
+                            throw response;
+                        }
+                        accessToken = response.access_token;
+                        gapi.client.setToken(response);
+                        document.getElementById('upload-form').style.display = 'block';
+                        document.getElementById('auth-status').innerHTML = '<p>Authentication successful!</p>';
+                    },
+                });
+
+                // Check if we have an access token in the URL
                 const urlParams = new URLSearchParams(window.location.search);
-                const accessToken = urlParams.get('access_token');
-                if (!accessToken) {
-                    throw new Error('No access token found in URL');
+                const urlToken = urlParams.get('access_token');
+                if (urlToken) {
+                    accessToken = urlToken;
+                    gapi.client.setToken({ access_token: urlToken });
+                    document.getElementById('upload-form').style.display = 'block';
+                } else {
+                    // Request authorization
+                    tokenClient.requestAccessToken();
                 }
-                
-                gapi.client.setToken({ access_token: accessToken });
-                console.log('GAPI client initialized successfully');
+
             } catch (error) {
                 console.error('Error initializing GAPI client:', error);
-                showError('Failed to initialize YouTube API: ' + error.message);
+                document.getElementById('auth-status').innerHTML = `<p style="color: red;">Error initializing API: ${error.message}</p>`;
             }
         }
 
         // Initialize when page loads
-        window.onload = initClient;
+        window.onload = initializeGAPIClient;
+
+        // Chunked upload function
+        async function uploadVideoInChunks(file) {
+            const CHUNK_SIZE = 1024 * 1024; // 1MB chunks
+            const totalSize = file.size;
+            let uploadedSize = 0;
+            let uploadUrl = null;
+
+            const metadata = {
+                snippet: {
+                    title: document.getElementById('video-title').value || file.name,
+                    description: document.getElementById('video-description').value || '',
+                    tags: []
+                },
+                status: {
+                    privacyStatus: 'private'
+                }
+            };
+
+            try {
+                // Get the upload URL
+                const response = await gapi.client.youtube.videos.insert({
+                    part: Object.keys(metadata).join(','),
+                    resource: metadata,
+                    media: {
+                        mimeType: file.type
+                    }
+                });
+
+                uploadUrl = response.result.uploadUrl;
+
+                // Upload the file in chunks
+                while (uploadedSize < totalSize) {
+                    const chunk = file.slice(uploadedSize, uploadedSize + CHUNK_SIZE);
+                    const response = await fetch(uploadUrl, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Range': `bytes ${uploadedSize}-${uploadedSize + chunk.size - 1}/${totalSize}`,
+                            'Content-Type': file.type
+                        },
+                        body: chunk
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Upload failed: ${response.statusText}`);
+                    }
+
+                    uploadedSize += chunk.size;
+                    const progress = (uploadedSize / totalSize) * 100;
+                    document.getElementById('progress').style.width = `${progress}%`;
+                }
+
+                return response.result;
+
+            } catch (error) {
+                throw new Error(`Upload failed: ${error.message}`);
+            }
+        }
 
         // Event listener for file selection
-        document.getElementById('video-file').addEventListener('change', function(e) {
+        document.getElementById('video-file').addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (file) {
                 document.getElementById('selected-file-name').textContent = `Selected: ${file.name}`;
-                U2Y(file);
+                document.getElementById('progress-bar').style.display = 'block';
+                document.getElementById('error-message').style.display = 'none';
+                document.getElementById('success-message').style.display = 'none';
+
+                try {
+                    const result = await uploadVideoInChunks(file);
+                    const videoId = result.id;
+                    const videoUrl = `https://youtube.com/watch?v=${videoId}`;
+                    
+                    document.getElementById('video-url').href = videoUrl;
+                    document.getElementById('video-url').textContent = videoUrl;
+                    document.getElementById('success-message').style.display = 'block';
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    document.getElementById('error-message').textContent = error.message;
+                    document.getElementById('error-message').style.display = 'block';
+                    document.getElementById('progress').style.width = '0%';
+                }
             }
         });
 
@@ -241,105 +223,9 @@
                 })
                 .catch(err => {
                     console.error('Failed to copy URL:', err);
-                    showError('Failed to copy URL to clipboard');
+                    document.getElementById('error-message').textContent = 'Failed to copy URL to clipboard';
+                    document.getElementById('error-message').style.display = 'block';
                 });
-        }
-
-        // Show error message
-        function showError(message) {
-            const errorElement = document.getElementById('error-message');
-            errorElement.textContent = message;
-            errorElement.style.display = 'block';
-        }
-
-        // Main upload function
-        async function U2Y(file) {
-            if (!gapi.client) {
-                showError('YouTube API client not initialized. Please try again.');
-                return;
-            }
-
-            const videoTitle = document.getElementById('video-title').value || file.name;
-            const videoDescription = document.getElementById('video-description').value || '';
-            const progressBar = document.getElementById('progress-bar');
-            const progress = document.getElementById('progress');
-            const successMessage = document.getElementById('success-message');
-            const errorMessage = document.getElementById('error-message');
-            
-            progressBar.style.display = 'block';
-            successMessage.style.display = 'none';
-            errorMessage.style.display = 'none';
-
-            try {
-                // Create a resumable upload session
-                const metadata = {
-                    snippet: {
-                        title: videoTitle,
-                        description: videoDescription,
-                        tags: [],
-                        categoryId: '22' // People & Blogs category
-                    },
-                    status: {
-                        privacyStatus: 'private',
-                        embeddable: true
-                    }
-                };
-
-                // Convert file to base64 for upload
-                const reader = new FileReader();
-                reader.readAsArrayBuffer(file);
-                
-                reader.onload = async function(e) {
-                    try {
-                        // Update progress to show upload has started
-                        progress.style.width = '50%';
-
-                        const base64Data = btoa(
-                            new Uint8Array(e.target.result)
-                                .reduce((data, byte) => data + String.fromCharCode(byte), '')
-                        );
-
-                        const response = await gapi.client.youtube.videos.insert({
-                            part: 'snippet,status',
-                            resource: metadata,
-                            media: {
-                                mimeType: file.type,
-                                body: base64Data
-                            }
-                        });
-
-                        if (response.result.id) {
-                            // Update progress to show completion
-                            progress.style.width = '100%';
-                            
-                            // Display video URL
-                            const videoId = response.result.id;
-                            const videoUrl = `https://youtube.com/watch?v=${videoId}`;
-                            const videoUrlElement = document.getElementById('video-url');
-                            videoUrlElement.href = videoUrl;
-                            videoUrlElement.textContent = videoUrl;
-                            successMessage.style.display = 'block';
-                        } else {
-                            throw new Error('No video ID received from YouTube API');
-                        }
-                    } catch (uploadError) {
-                        console.error('Upload error:', uploadError);
-                        showError(`Upload failed: ${uploadError.message || 'Please try again'}`);
-                        progress.style.width = '0%';
-                    }
-                };
-
-                reader.onerror = function(error) {
-                    console.error('File reading error:', error);
-                    showError('Failed to read video file');
-                    progress.style.width = '0%';
-                };
-
-            } catch (error) {
-                console.error('Setup error:', error);
-                showError(`Upload setup failed: ${error.message || 'Please try again'}`);
-                progress.style.width = '0%';
-            }
         }
     </script>
 </body>

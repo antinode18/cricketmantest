@@ -270,8 +270,7 @@ async function createYouTubeLiveBroadcast() {
   try {
     console.log('Step0');
     const accessToken = getAccessTokenFromUrl();
-    console.log('Step0.5');
-    //const accessToken = getAccessTokenFromUrl();
+    
     console.log('Step1');
     const broadcast = await createYouTubeBroadcast(accessToken, 'AdiVirat Broadcast');
     console.log('Step2');

@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload to YouTube</title>
+    <!-- Load the Google API client library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/google-api-javascript-client/1.1.0/client.js"></script>
     <style>
+        /* Previous styles remain the same */
         body {
             font-family: 'Roboto', sans-serif;
             background-color: #f9f9f9;
@@ -110,6 +113,15 @@
             color: #1e8e3e;
         }
 
+        .error-message {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fce8e6;
+            border-radius: 4px;
+            color: #d93025;
+        }
+
         .video-link {
             color: #065fd4;
             text-decoration: none;
@@ -145,6 +157,10 @@
             <input type="text" id="video-title" placeholder="Enter video title">
         </div>
         <div class="form-group">
+            <label for="video-description">Description (optional)</label>
+            <input type="text" id="video-description" placeholder="Enter video description">
+        </div>
+        <div class="form-group">
             <div class="file-upload">
                 <input type="file" id="video-file" class="file-upload-input" accept="video/*">
                 <button class="file-upload-button" onclick="document.getElementById('video-file').click()">
@@ -163,12 +179,26 @@
             <br>
             <button class="copy-button" onclick="copyVideoUrl()">Copy URL</button>
         </div>
+        <div class="error-message" id="error-message"></div>
     </div>
 
     <script>
         // Get OAuth token from URL
         const urlParams = new URLSearchParams(window.location.search);
         const accessToken = urlParams.get('access_token');
+
+        // Initialize the YouTube API client
+        gapi.load('client', initClient);
+
+        function initClient() {
+            gapi.client.init({}).then(() => {
+                gapi.client.setToken({ access_token: accessToken });
+                gapi.client.load('youtube', 'v3');
+            }).catch(error => {
+                console.error('Error initializing YouTube API client:', error);
+                showError('Failed to initialize YouTube API. Please check your credentials.');
+            });
+        }
 
         document.getElementById('video-file').addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -190,67 +220,81 @@
                 })
                 .catch(err => {
                     console.error('Failed to copy URL:', err);
+                    showError('Failed to copy URL to clipboard');
                 });
+        }
+
+        function showError(message) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
         }
 
         async function U2Y(file) {
             const videoTitle = document.getElementById('video-title').value || file.name;
+            const videoDescription = document.getElementById('video-description').value || '';
             const progressBar = document.getElementById('progress-bar');
             const progress = document.getElementById('progress');
             const successMessage = document.getElementById('success-message');
-            const videoUrlElement = document.getElementById('video-url');
+            const errorMessage = document.getElementById('error-message');
             
             progressBar.style.display = 'block';
             successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
 
             try {
-                // This is a simplified version. In reality, you'd need to:
-                // 1. Initialize upload with YouTube Data API
-                // 2. Handle chunked upload
-                // 3. Monitor progress
-                // 4. Handle success/failure
-                
+                // Step 1: Create video metadata
                 const metadata = {
                     snippet: {
                         title: videoTitle,
-                        description: '',
+                        description: videoDescription,
                         tags: [],
-                        categoryId: 22
+                        categoryId: '22' // People & Blogs category
                     },
                     status: {
-                        privacyStatus: 'private'
+                        privacyStatus: 'private',
+                        embeddable: true
                     }
                 };
 
-                // Simulated progress for demonstration
-                let currentProgress = 0;
-                const progressInterval = setInterval(() => {
-                    currentProgress += 5;
-                    if (currentProgress <= 100) {
-                        progress.style.width = `${currentProgress}%`;
-                    } else {
-                        clearInterval(progressInterval);
-                        
-                        // Here you would actually call the YouTube Data API
-                        // const response = await uploadToYouTube(file, metadata, accessToken);
-                        // const videoId = response.id;
-                        
-                        // Simulated video ID for demonstration
-                        const videoId = 'dQw4w9WgXcQ';
-                        const videoUrl = `https://youtube.com/watch?v=${videoId}`;
-                        
-                        // Display success message with video URL
-                        videoUrlElement.href = videoUrl;
-                        videoUrlElement.textContent = videoUrl;
-                        successMessage.style.display = 'block';
+                // Step 2: Initialize upload
+                const response = await gapi.client.youtube.videos.insert({
+                    part: 'snippet,status',
+                    resource: metadata,
+                    media: {
+                        body: file
                     }
-                }, 500);
+                });
+
+                if (response.result.id) {
+                    // Update progress bar to 100%
+                    progress.style.width = '100%';
+                    
+                    // Create and display video URL
+                    const videoId = response.result.id;
+                    const videoUrl = `https://youtube.com/watch?v=${videoId}`;
+                    const videoUrlElement = document.getElementById('video-url');
+                    videoUrlElement.href = videoUrl;
+                    videoUrlElement.textContent = videoUrl;
+                    successMessage.style.display = 'block';
+                } else {
+                    throw new Error('No video ID received from YouTube API');
+                }
 
             } catch (error) {
                 console.error('Upload failed:', error);
-                alert('Upload failed. Please try again.');
+                showError(`Upload failed: ${error.message || 'Please try again'}`);
+                progress.style.width = '0%';
             }
         }
+
+        // Handle upload progress
+        window.handleUploadProgress = function(event) {
+            if (event.lengthComputable) {
+                const percentComplete = (event.loaded / event.total) * 100;
+                document.getElementById('progress').style.width = percentComplete + '%';
+            }
+        };
     </script>
 </body>
 </html>

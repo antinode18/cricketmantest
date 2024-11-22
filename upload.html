@@ -1,8 +1,87 @@
 <!DOCTYPE html>
-<html><head></head><body>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video Uploader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .upload-container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #FF0000;
+            margin-bottom: 1.5rem;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        button {
+            background-color: #FF0000;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 0.5rem;
+        }
+        button:hover {
+            background-color: #CC0000;
+        }
+        #message {
+            margin-top: 1rem;
+            font-weight: bold;
+        }
+        #uploadButton {
+            display: none;
+        }
+    </style>
+
+
+
+
+    </head>
+    <body>
+
+        <div class="upload-container">
+            <h1>YouTube Video Uploader</h1>
+            <input type="text" id="titleInput" placeholder="Enter video title">
+            <input type="file" id="videoFileInput" accept="video/*" style="display: none;">
+            <button id="authenticateButton">Authenticate</button>
+            <button id="uploadButton">Upload Video</button>
+            <p id="message"></p>
+        </div>
 
   <script>
   
+  document.getElementById('videoFileInput').addEventListener('change', (event) => {
+            const title = document.getElementById('titleInput').value;
+            const file = event.target.files[0];
+            if (file && accessToken) {
+                uploadVideoToYouTube(title, accessToken);
+            } else if (!accessToken) {
+                document.getElementById('message').textContent = 'Please authenticate first';
+            }
+        });
   
 function getAccessTokenFromUrl() {
   const hash = window.location.hash.substring(1);
@@ -20,7 +99,7 @@ function getAccessTokenFromUrl() {
 
 
 
-       function uploadVideoToYouTube(title, oauthKey) {
+function uploadVideoToYouTube(title, oauthKey) {
             console.log("Step22");
             const videoFile = document.getElementById('videoFileInput').files[0];
             
@@ -64,7 +143,7 @@ function getAccessTokenFromUrl() {
             .catch(error => {
                 document.getElementById('message').textContent = `Error uploading video: ${error}`;
             });
-        }
+        }       
 
 
 
